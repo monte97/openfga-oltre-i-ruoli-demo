@@ -11,7 +11,7 @@ type org
 type course
   relations
     define author: [user]
-    define assistant: [user, user with non_expired]
+    define assistant: [user with non_expired]
     define student: [user, org#member]
     define blocked: [user]
     define editor: author or assistant
