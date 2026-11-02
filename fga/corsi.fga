@@ -14,7 +14,7 @@ type course
     define assistant: [user, user with non_expired]
     define student: [user, org#member]
     define blocked: [user]
-    define editor: author or assistant
+    define editor: author or assistant or student
     define viewer: (student or editor) but not blocked
     define can_publish: author
 
