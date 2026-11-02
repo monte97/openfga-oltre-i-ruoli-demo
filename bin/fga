@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# La CLI fga dentro il suo container ufficiale, per chi non vuole installarla.
+# Uso: dalla cartella del repo, export PATH="$PWD/bin:$PATH", poi fga come sempre.
+# Con lo stack avviato si collega alla rete del compose e parla con OpenFGA
+# all'indirizzo interno; senza stack (per esempio fga model test) gira da sola.
+NET=openfga-oltre-i-ruoli_default
+if docker network inspect "$NET" >/dev/null 2>&1; then
+  set -- --network "$NET" -e FGA_API_URL=http://openfga:8080 openfga/cli:v0.7.19 "$@"
+else
+  set -- openfga/cli:v0.7.19 "$@"
+fi
+exec docker run --rm -i -v "$PWD":/work -w /work -e FGA_STORE_ID "$@"
