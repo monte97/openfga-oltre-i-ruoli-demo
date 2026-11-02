@@ -2,6 +2,7 @@
 # Genera un JWT HS256 di sviluppo.
 # Uso: ./scripts/token.sh <utente> [ruolo ...]     es. ./scripts/token.sh anna student
 # La chiave e' quella di sviluppo dichiarata nel docker-compose.yml: non e' un segreto.
+# Gira dentro il toolbox (dove scripts/ e' nel PATH) o sull'host.
 set -euo pipefail
 
 user="${1:?uso: token.sh <utente> [ruolo ...]}"

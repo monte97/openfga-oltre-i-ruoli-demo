@@ -1,6 +1,17 @@
-# Stack della demo: OpenFGA (datastore in memoria) e il backend .NET 8.
-# Porte host: OpenFGA 8180, backend 5180 (la 8080 e la 3000 restano libere).
+# Stack della demo: OpenFGA (datastore in memoria), il backend .NET 8 e il toolbox
+# con la CLI fga. Il servizio init crea store, modello e tuple.
+# Porte host (facoltative): OpenFGA 8180, backend 5180.
 name: openfga-oltre-i-ruoli
+
+x-toolbox: &toolbox
+  build: ./toolbox
+  image: openfga-oltre-i-ruoli-toolbox
+  working_dir: /work
+  environment:
+    FGA_API_URL: http://openfga:8080
+  volumes:
+    - .:/work
+    - state:/state
 
 services:
   openfga:
@@ -9,15 +20,37 @@ services:
     ports:
       - "8180:8080"
 
+  init:
+    <<: *toolbox
+    command: ["./scripts/init.sh"]
+    depends_on:
+      - openfga
+
+  toolbox:
+    <<: *toolbox
+    command: ["sleep", "infinity"]
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
   backend:
     build: ./backend
+    entrypoint:
+      - sh
+      - -c
+      - ". /state/env && export OPENFGA__STOREID=$$FGA_STORE_ID && exec dotnet ElearningApi.dll"
     environment:
       OPENFGA__APIURL: http://openfga:8080
-      OPENFGA__STOREID: ${FGA_STORE_ID:-}
       AUTHZ__SOURCEOFTRUTH: ${AUTHZ__SOURCEOFTRUTH:-rbac}
       # Chiave di sviluppo, pubblica: serve solo a firmare i token di prova.
       JWT__DEVKEY: dev-only-hs256-key-not-a-secret-0123456789
+    volumes:
+      - state:/state:ro
     ports:
       - "5180:8080"
     depends_on:
-      - openfga
+      init:
+        condition: service_completed_successfully
+
+volumes:
+  state:

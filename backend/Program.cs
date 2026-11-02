@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 // --- Config ---
 var openfgaUrl = builder.Configuration["OPENFGA:APIURL"] ?? "http://openfga:8080";
 var storeId = builder.Configuration["OPENFGA:STOREID"]
-    ?? throw new InvalidOperationException("OPENFGA__STOREID non impostato: lancia `make up`.");
+    ?? throw new InvalidOperationException("OPENFGA__STOREID non impostato: lo scrive il servizio init.");
 var sourceOfTruth = builder.Configuration["AUTHZ:SOURCEOFTRUTH"] ?? "rbac";
 var devKey = builder.Configuration["JWT:DEVKEY"]
     ?? throw new InvalidOperationException("JWT__DEVKEY non impostata.");

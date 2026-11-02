@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Crea lo store e scrive il modello (corsi.fga), poi salva l'indirizzo e l'id dello store in .env.
+# Crea lo store col modello (corsi.fga) e salva l'id in /state/env, letto da toolbox e backend.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-export FGA_API_URL="http://localhost:8180"
 out=$(fga store create --name corsi --model fga/corsi.fga)
-store_id=$(printf '%s' "$out" | tr -d '\n ' | grep -o '"store":{[^}]*' | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
-[ -n "$store_id" ] || { echo "store non creato:"; echo "$out"; exit 1; }
+store_id=$(printf '%s' "$out" | jq -r '.store.id')
+[ -n "$store_id" ] && [ "$store_id" != null ] || { echo "store non creato:"; echo "$out"; exit 1; }
 
-printf 'FGA_API_URL=%s\nFGA_STORE_ID=%s\n' "$FGA_API_URL" "$store_id" > .env
-echo "store $store_id creato, modello scritto, .env aggiornato"
+printf 'export FGA_STORE_ID=%s\n' "$store_id" > /state/env
+echo "store $store_id creato, modello scritto"

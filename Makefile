@@ -1,23 +1,20 @@
-.PHONY: up seed test down reset logs
+# Scorciatoie facoltative per chi ha make sull'host: con solo Docker bastano i comandi `docker compose`.
+.PHONY: up shell test down reset logs
 
-up:     ## Avvia OpenFGA, crea lo store col modello, avvia il backend
-	docker compose up -d openfga
-	@until curl -sf http://localhost:8180/healthz >/dev/null; do sleep 1; done
-	./scripts/bootstrap.sh
-	docker compose up -d --build backend
+up:     ## Avvia tutto: OpenFGA, store, modello, tuple, backend, toolbox
+	docker compose up -d --build
 
-seed:   ## Scrive le tuple dello scenario, nell'ordine della storia
-	./scripts/seed.sh
+shell:  ## Entra nel toolbox
+	docker compose exec toolbox sh
 
 test:   ## Test del modello (non serve lo stack)
-	fga model test --tests fga/corsi.fga.yaml
+	docker compose run --rm --no-deps --build toolbox fga model test --tests fga/corsi.fga.yaml
 
 down:   ## Ferma lo stack
 	docker compose down
 
-reset:  ## Ferma lo stack, cancella i dati e .env
+reset:  ## Ferma lo stack e cancella i dati
 	docker compose down -v --remove-orphans
-	rm -f .env
 
 logs:   ## Segue i log del backend
 	docker compose logs -f backend

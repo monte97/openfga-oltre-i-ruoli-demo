@@ -3,7 +3,6 @@
 # Cosi' ReadChanges le restituisce nello stesso ordine.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-set -a; . ./.env; set +a
 
 w() { fga tuple write "$@" >/dev/null; echo "scritta: $1 $2 $3"; }
 
