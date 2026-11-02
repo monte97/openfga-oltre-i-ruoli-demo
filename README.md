@@ -5,58 +5,52 @@ Codice dell'articolo «Oltre i ruoli, con le mani sulla tastiera» sul blog di m
 ## Cosa serve
 
 - Docker con Compose
-- la CLI [`fga`](https://github.com/openfga/cli) (testata con la v0.7.19), installata oppure via Docker (vedi sotto)
-- `make`, `curl` e `openssl` (ci sono già su macOS e Linux)
+- git, per clonare il repo
 
-Niente Keycloak, niente Python, niente .NET installato: il backend si compila nel container.
-
-## La CLI fga senza installarla
-
-Per installarla: `brew install openfga/tap/fga` su macOS e Linux, oppure il binario dalla [pagina dei rilasci](https://github.com/openfga/cli/releases).
-
-Per non installare niente, `bin/fga` esegue la CLI nel container ufficiale `openfga/cli:v0.7.19`. Dalla cartella del repo:
-
-```bash
-export PATH="$PWD/bin:$PATH"
-fga version
-```
-
-Da lì `make up`, `make seed`, `make test` e tutti i comandi `fga` dell'articolo funzionano uguali. Con lo stack avviato il wrapper si collega alla rete del compose; senza stack (`make test`) gira da solo. I comandi vanno lanciati dalla cartella del repo, perché il wrapper monta la cartella corrente nel container.
+Niente CLI `fga` da installare, niente Keycloak, Python o .NET: la CLI sta nel container `toolbox`, il backend si compila nel container. Chi ha già la CLI sull'host può usarla sulla porta 8180 (`FGA_API_URL=http://localhost:8180`).
 
 ## Avvio
 
-```bash
-make up      # OpenFGA v1.22.1, store e modello, backend sulla 5180
-make seed    # le tuple dello scenario, nell'ordine della storia
-make test    # fga model test, non serve lo stack
-```
-
-`make up` scrive in `.env` l'indirizzo e l'id dello store. Per usare la CLI `fga` negli esempi dell'articolo:
+Due terminali: «host» è il terminale della macchina, dove si lanciano `git` e `docker compose`; «toolbox» è la shell dentro il container, dove si lanciano `fga`, `curl` e gli script.
 
 ```bash
-set -a; . ./.env; set +a
+# host
+docker compose up -d --build   # OpenFGA v1.22.1, store, modello, tuple, backend, toolbox
+docker compose exec toolbox sh # entra nel toolbox
 ```
 
-Porte sull'host: OpenFGA 8180, backend 5180.
+Dentro il toolbox la cartella del repo è `/work`, `fga` parla con `openfga:8080` e `FGA_STORE_ID` è già impostato:
+
+```bash
+# toolbox
+fga model test --tests fga/corsi.fga.yaml
+fga query check user:anna viewer course:42 --context '{"current_time":"2026-11-02T10:00:00Z"}'
+curl -s backend:8080/
+```
+
+Il servizio `init` crea lo store con il modello e scrive le tuple dello scenario nell'ordine della storia. I cambi di branch (`git checkout`) si fanno sull'host: il repo è montato nel toolbox, quindi il toolbox vede subito i file.
+
+Porte sull'host, facoltative: OpenFGA 8180, backend 5180. `make` è una scorciatoia facoltativa (`make up`, `make shell`, `make test`, `make down`, `make reset`).
 
 ## Cosa c'è dentro
 
 | Percorso | Contenuto |
 |---|---|
 | `fga/corsi.fga` | il modello dell'articolo, prima della correzione |
-| `fga/corsi.fga.yaml` | i test del modello (`make test`) |
+| `fga/corsi.fga.yaml` | i test del modello (`fga model test --tests fga/corsi.fga.yaml`) |
 | `anagrafica.csv` | chi dovrebbe avere accesso al corso 42 secondo HR e fornitore |
+| `toolbox/` | il Dockerfile del toolbox: Alpine con `fga`, `curl`, `jq`, `openssl`, `make` |
+| `scripts/init.sh` | il servizio `init`: aspetta OpenFGA, crea lo store e scrive le tuple (se lo store c'è già, non fa niente) |
 | `scripts/seed.sh` | le tuple, scritte una alla volta nell'ordine della storia |
-| `scripts/token.sh` | genera un JWT HS256 di sviluppo: `./scripts/token.sh anna student` |
+| `scripts/token.sh` | genera un JWT HS256 di sviluppo, nel toolbox: `./scripts/token.sh anna student` |
 | `backend/` | API .NET 8 con `IAuthorizer`: `RbacAuthorizer`, `OpenFgaAuthorizer`, `DualCheckAuthorizer` |
-| `bin/fga` | la CLI fga via Docker, per chi non la installa |
 | `.github/workflows/model-test.yml` | `fga model test` a ogni pull request |
 
 Branch:
 
 - `main`: lo stato di partenza, quello dell'articolo prima della correzione.
 - `soluzione`: il modello corretto (`assistant: [user with non_expired]`).
-- `esempio-pr-rotta`: una modifica al modello che rende Anna `editor` e fa fallire `make test`.
+- `esempio-pr-rotta`: una modifica al modello che rende Anna `editor` e fa fallire `fga model test`.
 
 ## Il backend
 
@@ -66,16 +60,24 @@ Due endpoint: `GET /courses/{id}` (serve la relazione `viewer`) e `PUT /courses/
 - `openfga`: decide OpenFGA.
 
 ```bash
+# toolbox
 TOKEN=$(./scripts/token.sh anna student)
-curl -i -H "Authorization: Bearer $TOKEN" localhost:5180/courses/43
+curl -i -H "Authorization: Bearer $TOKEN" backend:8080/courses/43
+```
 
+```bash
+# host
 AUTHZ__SOURCEOFTRUTH=openfga docker compose up -d backend
-curl -i -H "Authorization: Bearer $TOKEN" localhost:5180/courses/43
+```
+
+```bash
+# toolbox
+curl -i -H "Authorization: Bearer $TOKEN" backend:8080/courses/43
 ```
 
 ## Date di ReadChanges
 
-OpenFGA registra la data di ogni scrittura nel momento in cui avviene. Il registro che vedi con `fga tuple changes` ha l'ordine dell'articolo e le date del tuo seed.
+OpenFGA registra la data di ogni scrittura nel momento in cui avviene. Il registro che vedi con `fga tuple changes` ha l'ordine dell'articolo e le date del tuo avvio.
 
 ## Chiave di sviluppo
 
@@ -84,6 +86,7 @@ I token sono firmati con la chiave HS256 `dev-only-hs256-key-not-a-secret-012345
 ## Pulizia
 
 ```bash
-make down    # ferma lo stack
-make reset   # ferma, cancella i dati e .env
+# host
+docker compose down      # ferma lo stack
+docker compose down -v   # ferma, cancella lo store id e ricomincia da zero al prossimo up
 ```

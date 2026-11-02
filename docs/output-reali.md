@@ -1,50 +1,30 @@
 # Output reali
 
-Ogni blocco e' l'output di un'esecuzione vera, da zero, il 2026-11-02 (OpenFGA v1.22.1, fga version v`0.7.19` (commit: `cd511b8b9bb697066f053eac3446a73e81741a54`, date: `2026-07-13T18:59:54Z`)). Le date di ReadChanges sono quelle del seed di questa esecuzione.
+Ogni blocco e' l'output di un'esecuzione vera, da zero, il 2026-11-02 (`docker compose down -v`, poi `docker compose up -d --build`; OpenFGA v1.22.1, fga v0.7.19 nel toolbox). Tutti i comandi `fga` e `curl` sono lanciati nel toolbox, tranne dove e' indicato `# host`. Le date di ReadChanges sono quelle del seed di questa esecuzione.
 
-## Avvio da zero
-
-```bash
-$ make reset 2>&1 | tail -3
- Network openfga-oltre-i-ruoli_default Removing 
- Network openfga-oltre-i-ruoli_default Removed 
-rm -f .env
-```
+## Test del modello (toolbox)
 
 ```bash
-$ make up 2>&1 | grep -v -E '^#|^$' | tail -5
- Container openfga-oltre-i-ruoli-openfga-1 Running 
- Container openfga-oltre-i-ruoli-backend-1 Creating 
- Container openfga-oltre-i-ruoli-backend-1 Created 
- Container openfga-oltre-i-ruoli-backend-1 Starting 
- Container openfga-oltre-i-ruoli-backend-1 Started 
-```
-
-```bash
-$ make seed
-./scripts/seed.sh
-scritta: user:diego assistant course:42
-scritta: user:elena assistant course:42
-scritta: user:luca assistant course:42
-scritta: user:anna member org:acme
-scritta: user:giulia member org:acme
-scritta: user:paolo member org:acme
-scritta: org:acme#member student course:42
-scritta: user:paolo blocked course:42
-scritta: user:mario author course:42
-scritta: user:marta author course:43
-scritta: user:mario student course:43
-```
-
-```bash
-$ make test
-fga model test --tests fga/corsi.fga.yaml
+$ fga model test --tests fga/corsi.fga.yaml
 # Test Summary #
 Tests 6/6 passing
 Checks 12/12 passing
 ```
 
-## Anagrafica
+## Chi puo' vederlo, adesso (toolbox)
+
+```bash
+$ fga query list-users --object course:42 --relation viewer --user-filter user --context "{\"current_time\":\"$NOW\"}"
+{"users":[{"object":{"id":"diego","type":"user"}},{"object":{"id":"elena","type":"user"}},{"object":{"id":"mario","type":"user"}},{"object":{"id":"anna","type":"user"}},{"object":{"id":"giulia","type":"user"}}]}
+```
+
+```bash
+$ fga query list-users --object course:42 --relation viewer --user-filter user
+Error: failed to list users due to POST validation error for ListUsers POST with body {"code":"validation_error","message":"failed to evaluate relationship condition: 'non_expired' - tuple 'course:42#assistant@user:luca' is missing context parameters '[current_time]'"}
+ with error code validation_error error message: failed to evaluate relationship condition: 'non_expired' - tuple 'course:42#assistant@user:luca' is missing context parameters '[current_time]'
+```
+
+## Anagrafica (toolbox)
 
 ```bash
 $ cat anagrafica.csv
@@ -58,20 +38,7 @@ elena,assistente del corso 42,fornitore,uscita a maggio
 luca,assistente del corso 42,fornitore,fino al 30 giugno
 ```
 
-## Chi puo' vederlo, adesso
-
-```bash
-$ fga query list-users --object course:42 --relation viewer --user-filter user --context "{\"current_time\":\"$NOW\"}"
-{"users":[{"object":{"id":"elena","type":"user"}},{"object":{"id":"diego","type":"user"}},{"object":{"id":"mario","type":"user"}},{"object":{"id":"anna","type":"user"}},{"object":{"id":"giulia","type":"user"}}]}
-```
-
-```bash
-$ fga query list-users --object course:42 --relation viewer --user-filter user
-Error: failed to list users due to POST validation error for ListUsers POST with body {"code":"validation_error","message":"failed to evaluate relationship condition: 'non_expired' - tuple 'course:42#assistant@user:luca' is missing context parameters '[current_time]'"}
- with error code validation_error error message: failed to evaluate relationship condition: 'non_expired' - tuple 'course:42#assistant@user:luca' is missing context parameters '[current_time]'
-```
-
-## Da dove arriva l'accesso
+## Da dove arriva l'accesso (toolbox)
 
 ```bash
 $ fga query expand viewer course:42
@@ -104,7 +71,7 @@ $ fga tuple read --object course:42 --relation assistant
         "relation":"assistant",
         "user":"user:diego"
       },
-      "timestamp":"2026-11-02T15:24:58.348100671Z"
+      "timestamp":"2026-11-02T16:25:49.97022125Z"
     },
     {
       "key": {
@@ -112,7 +79,7 @@ $ fga tuple read --object course:42 --relation assistant
         "relation":"assistant",
         "user":"user:elena"
       },
-      "timestamp":"2026-11-02T15:24:58.366257962Z"
+      "timestamp":"2026-11-02T16:25:49.984516791Z"
     },
     {
       "key": {
@@ -126,7 +93,7 @@ $ fga tuple read --object course:42 --relation assistant
         "relation":"assistant",
         "user":"user:luca"
       },
-      "timestamp":"2026-11-02T15:24:58.382823462Z"
+      "timestamp":"2026-11-02T16:25:50.004316375Z"
     }
   ]
 }
@@ -147,14 +114,14 @@ $ fga query check user:elena viewer course:42 --context "{\"current_time\":\"$NO
 {"allowed":true,"resolution":""}
 ```
 
-## Da quando
+## Da quando (toolbox)
 
 ```bash
 $ fga tuple changes --type course
-{"changes":[{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T15:24:58.348100671Z","tuple_key":{"object":"course:42","relation":"assistant","user":"user:diego"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T15:24:58.366257962Z","tuple_key":{"object":"course:42","relation":"assistant","user":"user:elena"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T15:24:58.382823462Z","tuple_key":{"condition":{"context":{"valid_until":"2026-06-30T23:59:59Z"},"name":"non_expired"},"object":"course:42","relation":"assistant","user":"user:luca"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T15:24:58.445118171Z","tuple_key":{"object":"course:42","relation":"student","user":"org:acme#member"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T15:24:58.461844463Z","tuple_key":{"object":"course:42","relation":"blocked","user":"user:paolo"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T15:24:58.476169754Z","tuple_key":{"object":"course:42","relation":"author","user":"user:mario"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T15:24:58.490966338Z","tuple_key":{"object":"course:43","relation":"author","user":"user:marta"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T15:24:58.505219004Z","tuple_key":{"object":"course:43","relation":"student","user":"user:mario"}}],"continuation_token":"MDFNNkVEVDZSOUE3RVdZVjg0MU5QQ1JHMlB8Y291cnNl"}
+{"changes":[{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T16:25:49.97022125Z","tuple_key":{"object":"course:42","relation":"assistant","user":"user:diego"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T16:25:49.984516791Z","tuple_key":{"object":"course:42","relation":"assistant","user":"user:elena"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T16:25:50.004316375Z","tuple_key":{"condition":{"context":{"valid_until":"2026-06-30T23:59:59Z"},"name":"non_expired"},"object":"course:42","relation":"assistant","user":"user:luca"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T16:25:50.0851825Z","tuple_key":{"object":"course:42","relation":"student","user":"org:acme#member"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T16:25:50.119239208Z","tuple_key":{"object":"course:42","relation":"blocked","user":"user:paolo"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T16:25:50.136455291Z","tuple_key":{"object":"course:42","relation":"author","user":"user:mario"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T16:25:50.148437458Z","tuple_key":{"object":"course:43","relation":"author","user":"user:marta"}},{"operation":"TUPLE_OPERATION_WRITE","timestamp":"2026-11-02T16:25:50.162809708Z","tuple_key":{"object":"course:43","relation":"student","user":"user:mario"}}],"continuation_token":"MDFNNkVIOU1USlZNMTUxUjJUWFBXNDdXMTN8Y291cnNl"}
 ```
 
-## Chiudere e verificare
+## Chiudere e verificare (toolbox)
 
 ```bash
 $ fga tuple delete user:diego assistant course:42
@@ -178,12 +145,13 @@ $ fga query check user:elena viewer course:42 --context "{\"current_time\":\"$NO
 
 ```bash
 $ fga query list-users --object course:42 --relation viewer --user-filter user --context "{\"current_time\":\"$NOW\"}"
-{"users":[{"object":{"id":"giulia","type":"user"}},{"object":{"id":"mario","type":"user"}},{"object":{"id":"anna","type":"user"}}]}
+{"users":[{"object":{"id":"giulia","type":"user"}},{"object":{"id":"anna","type":"user"}},{"object":{"id":"mario","type":"user"}}]}
 ```
 
 ## Correggere il modello
 
 ```bash
+# host
 $ git checkout soluzione -- fga/corsi.fga && git diff --cached -U1 fga/corsi.fga | tail -8
 index 7ae9424..fbcd3cc 100644
 --- a/fga/corsi.fga
@@ -196,87 +164,96 @@ index 7ae9424..fbcd3cc 100644
 ```
 
 ```bash
+# toolbox
 $ fga model write --file fga/corsi.fga
-{"authorization_model_id":"01M6EDT7451VKH9B8RRRWGPV00"}
+{"authorization_model_id":"01M6EH9Y1M23MFXR4R4TK11KM9"}
 ```
 
 ```bash
+# toolbox
 $ fga tuple write user:sara assistant course:42
 Error: failed to write tuple: POST validation error for Write POST with body {"code":"validation_error","message":"Invalid tuple 'course:42#assistant@user:sara'. Reason: condition is missing"}
  with error code validation_error error message: Invalid tuple 'course:42#assistant@user:sara'. Reason: condition is missing
 ```
 
 ```bash
+# toolbox
 $ fga tuple write user:sara assistant course:42 --condition-name non_expired --condition-context '{"valid_until":"2026-12-31T23:59:59Z"}'
 {"successful":[{"condition":{"context":{"valid_until":"2026-12-31T23:59:59Z"},"name":"non_expired"},"object":"course:42","relation":"assistant","user":"user:sara"}]}
 ```
 
 ```bash
-$ make test
-fga model test --tests fga/corsi.fga.yaml
+# toolbox
+$ fga model test --tests fga/corsi.fga.yaml
 # Test Summary #
 Tests 6/6 passing
 Checks 12/12 passing
 ```
 
-```bash
-$ git reset -q HEAD fga/corsi.fga && git checkout -q main -- fga/corsi.fga; git status --short
-?? docs/output-reali.md
-```
-
 ## La PR che rompe il modello
 
 ```bash
-$ git checkout -q esempio-pr-rotta && make test; git checkout -q main
-fga model test --tests fga/corsi.fga.yaml
+# host
+$ git restore --staged --worktree fga/corsi.fga
+$ git checkout -q esempio-pr-rotta
+```
+
+```bash
+# toolbox
+$ fga model test --tests fga/corsi.fga.yaml
 (FAILING) Anna vede il corso 42 e non lo modifica: Checks (2/3 passing)
 ⅹ Check(user=user:anna,relation=editor,object=course:42, context:&map[current_time:2026-11-02T10:00:00Z]): expected=false, got=true
 ---
 # Test Summary #
 Tests 5/6 passing
 Checks 11/12 passing
-make: *** [test] Error 1
+exit=1
 ```
 
-## Il backend: shadow, con RBAC che decide
+```bash
+# host
+$ git checkout -q main
+```
+
+## Il backend: shadow, con RBAC che decide (toolbox)
 
 ```bash
-$ curl -s localhost:5180/; echo
+$ curl -s backend:8080/; echo
 elearning-api: demo RBAC->ReBAC, fonte di verita': rbac
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" localhost:5180/courses/42
+$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" backend:8080/courses/42
 200
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" localhost:5180/courses/43
+$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" backend:8080/courses/43
 200
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -X PUT -H "Authorization: Bearer $(./scripts/token.sh mario author)" localhost:5180/courses/42
+$ curl -s -o /dev/null -w '%{http_code}\n' -X PUT -H "Authorization: Bearer $(./scripts/token.sh mario author)" backend:8080/courses/42
 200
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -X PUT -H "Authorization: Bearer $(./scripts/token.sh mario author)" localhost:5180/courses/43
+$ curl -s -o /dev/null -w '%{http_code}\n' -X PUT -H "Authorization: Bearer $(./scripts/token.sh mario author)" backend:8080/courses/43
 200
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh giulia)" localhost:5180/courses/42
+$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh giulia)" backend:8080/courses/42
 403
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' localhost:5180/courses/42
+$ curl -s -o /dev/null -w '%{http_code}\n' backend:8080/courses/42
 401
 ```
 
 ```bash
-$ docker compose logs backend --no-log-prefix | grep -B1 mismatch | grep -v -- '^--'
+# host
 warn: ElearningApi.Authz.DualCheckAuthorizer[0]
       dual-check mismatch: user:anna viewer course:43 -> rbac=True openfga=False
 warn: ElearningApi.Authz.DualCheckAuthorizer[0]
@@ -288,33 +265,43 @@ warn: ElearningApi.Authz.DualCheckAuthorizer[0]
 ## Cutover
 
 ```bash
-$ AUTHZ__SOURCEOFTRUTH=openfga docker compose up -d backend 2>&1 | tail -2
- Container openfga-oltre-i-ruoli-backend-1 Starting 
- Container openfga-oltre-i-ruoli-backend-1 Started 
+# host
+$ AUTHZ__SOURCEOFTRUTH=openfga docker compose up -d backend
 ```
 
 ```bash
-$ curl -s localhost:5180/; echo
+# toolbox
+$ curl -s backend:8080/; echo
 elearning-api: demo RBAC->ReBAC, fonte di verita': openfga
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" localhost:5180/courses/42
+# toolbox
+$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" backend:8080/courses/42
 200
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" localhost:5180/courses/43
+# toolbox
+$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" backend:8080/courses/43
 403
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -X PUT -H "Authorization: Bearer $(./scripts/token.sh mario author)" localhost:5180/courses/43
+# toolbox
+$ curl -s -o /dev/null -w '%{http_code}\n' -X PUT -H "Authorization: Bearer $(./scripts/token.sh mario author)" backend:8080/courses/43
 403
 ```
 
 ```bash
-$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh giulia)" localhost:5180/courses/42
+# toolbox
+$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh giulia)" backend:8080/courses/42
+200
+```
+
+```bash
+# toolbox
+$ curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $(./scripts/token.sh anna student)" backend:8080/courses/42
 200
 ```
 

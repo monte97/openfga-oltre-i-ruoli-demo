@@ -8,7 +8,7 @@ shell:  ## Entra nel toolbox
 	docker compose exec toolbox sh
 
 test:   ## Test del modello (non serve lo stack)
-	docker compose run --rm --no-deps --build toolbox fga model test --tests fga/corsi.fga.yaml
+	docker compose run --rm --no-deps toolbox fga model test --tests fga/corsi.fga.yaml
 
 down:   ## Ferma lo stack
 	docker compose down
