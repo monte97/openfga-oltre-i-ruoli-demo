@@ -1,0 +1,19 @@
+name: model-test
+
+on:
+  pull_request:
+    paths:
+      - "fga/**"
+
+jobs:
+  fga-model-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installa la CLI fga
+        run: |
+          curl -sSL https://github.com/openfga/cli/releases/download/v0.7.19/fga_0.7.19_linux_amd64.tar.gz | tar -xz fga
+          sudo mv fga /usr/local/bin/fga
+          fga version
+      - name: Test del modello
+        run: fga model test --tests fga/corsi.fga.yaml

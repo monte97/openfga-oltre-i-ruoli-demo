@@ -1,0 +1,23 @@
+# corsi.fga
+model
+  schema 1.1
+
+type user
+
+type org
+  relations
+    define member: [user]
+
+type course
+  relations
+    define author: [user]
+    define assistant: [user, user with non_expired]
+    define student: [user, org#member]
+    define blocked: [user]
+    define editor: author or assistant
+    define viewer: (student or editor) but not blocked
+    define can_publish: author
+
+condition non_expired(current_time: timestamp, valid_until: timestamp) {
+  current_time < valid_until
+}

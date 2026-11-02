@@ -1,0 +1,8 @@
+utente,chi_e,fonte,stato
+anna,dipendente Acme,HR Acme,attiva
+giulia,dipendente Acme,HR Acme,attiva
+paolo,dipendente Acme,HR Acme,sospeso dal corso 42
+mario,autore del corso 42,fornitore,attivo
+diego,assistente del corso 42,fornitore,contratto finito a giugno
+elena,assistente del corso 42,fornitore,uscita a maggio
+luca,assistente del corso 42,fornitore,fino al 30 giugno

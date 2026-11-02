@@ -1,0 +1,105 @@
+# Test del modello: descrivono i permessi che non devono cambiare.
+# Le tuple di questo file non sono quelle del seed: gli assistenti hanno sempre
+# una scadenza, cosi' il file resta valido sia prima sia dopo la correzione del modello.
+name: Corsi
+model_file: ./corsi.fga
+
+tuples:
+  - user: user:mario
+    relation: author
+    object: course:42
+  - user: user:diego
+    relation: assistant
+    object: course:42
+    condition:
+      name: non_expired
+      context:
+        valid_until: "2026-12-31T23:59:59Z"
+  - user: user:luca
+    relation: assistant
+    object: course:42
+    condition:
+      name: non_expired
+      context:
+        valid_until: "2026-06-30T23:59:59Z"
+  - user: user:anna
+    relation: member
+    object: org:acme
+  - user: user:giulia
+    relation: member
+    object: org:acme
+  - user: user:paolo
+    relation: member
+    object: org:acme
+  - user: org:acme#member
+    relation: student
+    object: course:42
+  - user: user:paolo
+    relation: blocked
+    object: course:42
+
+tests:
+  - name: Anna vede il corso 42 e non lo modifica
+    check:
+      - user: user:anna
+        object: course:42
+        context:
+          current_time: "2026-11-02T10:00:00Z"
+        assertions:
+          viewer: true
+          editor: false
+          can_publish: false
+
+  - name: Paolo e' sospeso, non vede il corso 42
+    check:
+      - user: user:paolo
+        object: course:42
+        context:
+          current_time: "2026-11-02T10:00:00Z"
+        assertions:
+          viewer: false
+
+  - name: Mario scrive e pubblica il corso 42
+    check:
+      - user: user:mario
+        object: course:42
+        context:
+          current_time: "2026-11-02T10:00:00Z"
+        assertions:
+          editor: true
+          can_publish: true
+
+  - name: Diego valuta ma non pubblica
+    check:
+      - user: user:diego
+        object: course:42
+        context:
+          current_time: "2026-11-02T10:00:00Z"
+        assertions:
+          editor: true
+          viewer: true
+          can_publish: false
+
+  - name: Luca ha accesso il 15 giugno e non dal 2 luglio
+    check:
+      - user: user:luca
+        object: course:42
+        context:
+          current_time: "2026-06-15T10:00:00Z"
+        assertions:
+          viewer: true
+      - user: user:luca
+        object: course:42
+        context:
+          current_time: "2026-07-02T10:00:00Z"
+        assertions:
+          viewer: false
+
+  - name: Il corso 43 non e' di Acme
+    check:
+      - user: user:anna
+        object: course:43
+        context:
+          current_time: "2026-11-02T10:00:00Z"
+        assertions:
+          viewer: false
